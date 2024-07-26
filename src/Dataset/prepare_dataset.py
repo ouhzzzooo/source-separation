@@ -5,6 +5,10 @@ import torch
 import librosa
 import soundfile as sf
 from tqdm import tqdm
+import sys
+
+from feature_extraction import extract_features
+
 
 def load_wav_16k_mono(filename):
     y, sr = librosa.load(filename, sr=16000, mono=True)
@@ -53,6 +57,22 @@ def process_folder(input_folder, output_folder_original, output_folder_combined)
         save_wav_16k_mono(combined, output_file)
         print(f"Saved to: {output_file}")
 
+def prepare_dataset_features(dataset_path):
+    features = {'mfccs': [], 'spectral': [], 'rmse': [], 'zcr': [], 'combined': []}
+    labels = []
+    for class_label in ['0', '1']:
+        class_folder = os.path.join(dataset_path, class_label)
+        for file_name in os.listdir(class_folder):
+            file_path = os.path.join(class_folder, file_name)
+            feature_dict = extract_features(file_path)
+            for key in features.keys():
+                features[key].append(feature_dict[key])
+            labels.append(int(class_label))
+    for key in features.keys():
+        features[key] = np.array(features[key])
+    labels = np.array(labels)
+    return features, labels
+
 if __name__ == "__main__":
     dataset_base = "./Dataset"
     wav_base = "./WAV"
@@ -63,3 +83,11 @@ if __name__ == "__main__":
         output_folder_combined = os.path.join(dataset_base, split.capitalize(), "combined")
         
         process_folder(input_folder, output_folder_original, output_folder_combined)
+
+        # Prepare features and labels
+        features, labels = prepare_dataset_features(output_folder_original)
+        for key in features.keys():
+            np.save(os.path.join(dataset_base, f"{split}_{key}_features.npy"), features[key])
+        np.save(os.path.join(dataset_base, f"{split}_labels.npy"), labels)
+
+        print(f"Features and labels for {split} set saved as .npy files.")
