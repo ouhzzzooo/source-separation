@@ -117,10 +117,9 @@ class AdvancedCNNAutoencoder(nn.Module):
         )
 
     def forward(self, x):
-        x = x.unsqueeze(1)  # Add channel dimension
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
-        return decoded.squeeze(1)  # Remove channel dimension
+        return decoded
 
 # Define EarlyStopping
 class EarlyStopping:
@@ -144,6 +143,9 @@ class EarlyStopping:
 
 # Define loss functions
 def stft_loss(pred, target):
+    if len(pred.shape) == 2:
+        pred = pred.unsqueeze(1)
+        target = target.unsqueeze(1)
     batch_size, channels, length = pred.shape
     pred = pred.view(batch_size * channels, length)
     target = target.view(batch_size * channels, length)
@@ -167,6 +169,6 @@ def get_model(model_name):
         raise ValueError(f"Unknown model name: {model_name}")
 
 if __name__ == "__main__":
-    model_name = 'UNet1D' 
+    model_name = 'AdvancedCNNAutoencoder' 
     model = get_model(model_name)
     print(model)

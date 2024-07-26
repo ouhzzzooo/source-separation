@@ -41,11 +41,11 @@ def reconstruct_and_save(model, test_loader, output_path):
     model.eval()
     with torch.no_grad():
         for batch_idx, (combined, filenames) in enumerate(tqdm(test_loader, desc="Reconstructing Test Data")):
-            combined = combined.view(combined.size(0), -1).float()
+            combined = combined.float()
             reconstructed = model(combined)
 
             for i, wav in enumerate(reconstructed):
-                wav = wav.numpy()
+                wav = wav.squeeze().numpy()  # Remove channel dimension and convert to numpy
                 max_val = np.max(np.abs(wav))
                 if max_val > 0:
                     wav = wav / max_val
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     test_dataset = SnoreDataset(test_data_path)
     test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
-    model_name = 'UNet1D'  # Change this to 'AdvancedCNNAutoencoder' to use the other model
+    model_name = 'AdvancedCNNAutoencoder'  # Change this to 'UNet1D' to use the other model
     model = get_model(model_name)
     model.load_state_dict(torch.load(model_path))
 

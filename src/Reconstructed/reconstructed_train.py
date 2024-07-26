@@ -48,8 +48,8 @@ class SnoreDataset(Dataset):
 def train_model(model, train_loader, val_loader, num_epochs, patience, model_path):
     criterion = combined_loss
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=2, verbose=True)
-    early_stopping = EarlyStopping(patience=patience, min_delta=0.01)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=4, verbose=True)
+    early_stopping = EarlyStopping(patience=patience, min_delta=0.001)
 
     train_losses = []
     val_losses = []
@@ -131,6 +131,6 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
-    model_name = 'UNet1D'  
+    model_name = 'AdvancedCNNAutoencoder'  
     model = get_model(model_name)
-    train_model(model, train_loader, val_loader, num_epochs=25, patience=5, model_path=model_path)
+    train_model(model, train_loader, val_loader, num_epochs=50, patience=10, model_path=model_path)

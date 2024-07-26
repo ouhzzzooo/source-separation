@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 def load_wav_16k_mono(filename):
     y, sr = librosa.load(filename, sr=16000, mono=True)
-    y = y / np.max(np.abs(y))  # Normalization to [-1, 1]
+    y = y / np.max(np.abs(y)) if np.max(np.abs(y)) != 0 else y  # Normalization to [-1, 1]
     return y
 
 def save_wav_16k_mono(wav, filename, sr=16000):
@@ -17,6 +17,9 @@ def save_wav_16k_mono(wav, filename, sr=16000):
 def process_folder(input_folder, output_folder_original, output_folder_combined):
     snore_files = glob.glob(os.path.join(input_folder, '1/*.wav'))
     noise_files = glob.glob(os.path.join(input_folder, '0/*.wav'))
+
+    if not snore_files or not noise_files:
+        raise FileNotFoundError("No snore or noise files found in the specified folders.")
 
     os.makedirs(os.path.join(output_folder_original, '0'), exist_ok=True)
     os.makedirs(os.path.join(output_folder_original, '1'), exist_ok=True)
@@ -44,11 +47,11 @@ def process_folder(input_folder, output_folder_original, output_folder_combined)
         noise = noise[:len(snore)]
 
         combined = snore + noise
-        combined = combined / np.max(np.abs(combined))
+        combined = combined / np.max(np.abs(combined)) if np.max(np.abs(combined)) != 0 else combined
 
         output_file = os.path.join(output_folder_combined, os.path.basename(snore_file))
         save_wav_16k_mono(combined, output_file)
-        print(f"save to : {output_file}")
+        print(f"Saved to: {output_file}")
 
 if __name__ == "__main__":
     dataset_base = "./Dataset"

@@ -14,8 +14,8 @@ def calculate_cosine_similarity(clean, reconstructed):
     return dot_product / (norm_clean * norm_reconstructed)
 
 # Paths to the test data and reconstructed data
-test_reconstructed_path = "/Users/pongsakorn/Desktop/source_separation/Reconstructed/reconstructed_data"
-original_path = "/Users/pongsakorn/Desktop/source_separation/Dataset/Test/original/1"
+test_reconstructed_path = "./Reconstructed/reconstructed_data"
+original_path = "./Dataset/Test/original"
 
 # Load the reconstructed and original files
 reconstructed_files = sorted([f for f in os.listdir(test_reconstructed_path) if f.endswith('.wav')])
