@@ -24,7 +24,7 @@ class SnoreDataset(Dataset):
         max_val = np.max(np.abs(wav))
         if max_val > 0:
             wav = wav / max_val
-        return torch.tensor(wav, dtype=torch.float32).unsqueeze(0), os.path.basename(file)
+        return torch.tensor(wav, dtype=torch.float32), os.path.basename(file)
 
     def filter_files(self, file_list):
         filtered_files = []
@@ -42,6 +42,7 @@ def reconstruct_and_save(model, test_loader, output_path):
     with torch.no_grad():
         for batch_idx, (combined, filenames) in enumerate(tqdm(test_loader, desc="Reconstructing Test Data")):
             combined = combined.float()
+            combined = combined.unsqueeze(1)  # Ensure inputs have shape (batch_size, 1, sequence_length)
             reconstructed = model(combined)
 
             for i, wav in enumerate(reconstructed):
