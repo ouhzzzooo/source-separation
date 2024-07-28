@@ -24,7 +24,7 @@ class SnoreDataset(Dataset):
         max_val = np.max(np.abs(wav))
         if max_val > 0:
             wav = wav / max_val
-        return torch.tensor(wav, dtype=torch.float32).unsqueeze(0), os.path.basename(file)
+        return torch.tensor(wav, dtype=torch.float32), os.path.basename(file)
 
     def filter_files(self, file_list):
         filtered_files = []
@@ -42,6 +42,7 @@ def reconstruct_and_save(model, test_loader, output_path):
     with torch.no_grad():
         for batch_idx, (combined, filenames) in enumerate(tqdm(test_loader, desc="Reconstructing Test Data")):
             combined = combined.float()
+            combined = combined.unsqueeze(1)  # Ensure inputs have shape (batch_size, 1, sequence_length)
             reconstructed = model(combined)
 
             for i, wav in enumerate(reconstructed):
@@ -54,14 +55,15 @@ def reconstruct_and_save(model, test_loader, output_path):
                 sf.write(os.path.join(output_path, filenames[i]), wav, 16000)
 
 if __name__ == "__main__":
-    test_data_path = "./Dataset/Test/combined"
-    model_path = "./best_model.pth"
-    output_path = "./Reconstructed/reconstructed_data"
+    test_data_path = "./src/Dataset/Test/combined"
+    model_path = "./src/Reconstructed/reconstructed_model_Uniform.pth"
+    # "./path_try/advanced_cnn_autoencoder_model.pth"
+    output_path = "./src/Reconstructed/reconstructed_data"
 
     test_dataset = SnoreDataset(test_data_path)
     test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
-    model_name = 'AdvancedCNNAutoencoder'  # Change this to 'UNet1D' to use the other model
+    model_name = 'Uniform'  # Change this to 'UNet1D' to use the other model
     model = get_model(model_name)
     model.load_state_dict(torch.load(model_path))
 

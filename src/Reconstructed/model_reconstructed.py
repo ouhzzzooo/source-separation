@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
+import torch.nn.utils.parametrizations as param
+
 
 # Define Model 1: UNet1D
 class UNet1D(nn.Module):
-    def __init__(self, in_channels=1, out_channels=1, init_features=64):
+    def __init__(self, in_channels=1, out_channels=1, init_features=32):
         super(UNet1D, self).__init__()
 
         features = init_features
@@ -16,9 +18,9 @@ class UNet1D(nn.Module):
         self.encoder4 = UNet1D._block(features * 4, features * 8, name="enc4")
         self.pool4 = nn.MaxPool1d(kernel_size=2, stride=2)
 
-        self.bottleneck = UNet1D._block(features * 8, features * 16, name="bottleneck")
+        self.bottleneck = UNet1D._block(features * 8, features * 8, name="bottleneck")
 
-        self.upconv4 = nn.ConvTranspose1d(features * 16, features * 8, kernel_size=2, stride=2)
+        self.upconv4 = nn.ConvTranspose1d(features * 8, features * 8, kernel_size=2, stride=2)
         self.decoder4 = UNet1D._block((features * 8) * 2, features * 8, name="dec4")
         self.upconv3 = nn.ConvTranspose1d(features * 8, features * 4, kernel_size=2, stride=2)
         self.decoder3 = UNet1D._block((features * 4) * 2, features * 4, name="dec3")
@@ -62,7 +64,7 @@ class UNet1D(nn.Module):
                 bias=False,
             ),
             nn.BatchNorm1d(num_features=features),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(inplace=True),
             nn.Conv1d(
                 in_channels=features,
                 out_channels=features,
@@ -71,9 +73,9 @@ class UNet1D(nn.Module):
                 bias=False,
             ),
             nn.BatchNorm1d(num_features=features),
-            nn.ReLU(inplace=True),
+            nn.LeakyReLU(inplace=True),
         )
-
+        
 # Define Model 2: AdvancedCNNAutoencoder
 class AdvancedCNNAutoencoder(nn.Module):
     def __init__(self):
@@ -82,36 +84,41 @@ class AdvancedCNNAutoencoder(nn.Module):
         # Encoder
         self.encoder = nn.Sequential(
             nn.Conv1d(1, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0),
             nn.Conv1d(64, 128, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0),
             nn.Conv1d(128, 256, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0.2),
             nn.Conv1d(256, 512, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm1d(512),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0.3),
             nn.Conv1d(512, 1024, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm1d(1024),
-            nn.ReLU(),
-            nn.Dropout(0.4)
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0.5)
         )
 
         # Decoder
         self.decoder = nn.Sequential(
             nn.ConvTranspose1d(1024, 512, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm1d(512),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0),
             nn.ConvTranspose1d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm1d(256),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0),
             nn.ConvTranspose1d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm1d(128),
-            nn.ReLU(),
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0.3),
             nn.ConvTranspose1d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm1d(64),
-            nn.ReLU(),
+            nn.BatchNorm1d(64), 
+            nn.LeakyReLU(0.1),
+            nn.Dropout(0),
             nn.ConvTranspose1d(64, 1, kernel_size=3, stride=2, padding=1, output_padding=1),
             nn.Tanh()
         )
@@ -121,6 +128,8 @@ class AdvancedCNNAutoencoder(nn.Module):
         decoded = self.decoder(encoded)
         return decoded
 
+
+                    
 # Define EarlyStopping
 class EarlyStopping:
     def __init__(self, patience=5, min_delta=0):
@@ -165,10 +174,12 @@ def get_model(model_name):
         return UNet1D()
     elif model_name == 'AdvancedCNNAutoencoder':
         return AdvancedCNNAutoencoder()
+    elif model_name == 'Uniform':
+        return Uniform()
     else:
         raise ValueError(f"Unknown model name: {model_name}")
 
 if __name__ == "__main__":
-    model_name = 'AdvancedCNNAutoencoder' 
+    model_name = 'Uniform' 
     model = get_model(model_name)
     print(model)

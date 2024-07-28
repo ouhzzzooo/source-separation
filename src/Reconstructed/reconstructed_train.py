@@ -54,11 +54,12 @@ def train_model(model, train_loader, val_loader, num_epochs, patience, model_pat
     train_losses = []
     val_losses = []
     best_val_loss = float('inf')
-
+    finish = False
     for epoch in range(num_epochs):
         model.train()
         train_loss = 0.0
         for batch_idx, (combined, clean) in enumerate(tqdm(train_loader, desc=f"Training Epoch {epoch+1}/{num_epochs}")):
+            combined, clean = combined.cuda(), clean.cuda()
             optimizer.zero_grad()
             output = model(combined)
 
@@ -86,6 +87,7 @@ def train_model(model, train_loader, val_loader, num_epochs, patience, model_pat
         model.eval()
         with torch.no_grad():
             for combined, clean in tqdm(val_loader, desc=f"Validation Epoch {epoch+1}/{num_epochs}"):
+                combined, clean = combined.cuda(), clean.cuda()
                 output = model(combined)
 
                 if torch.isnan(output).any() or torch.isinf(output).any():
@@ -107,20 +109,20 @@ def train_model(model, train_loader, val_loader, num_epochs, patience, model_pat
         
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_model.pth')
-            print(f"Model saved to best_model.pth")
+            torch.save(model.state_dict(), model_path)
 
         early_stopping(val_loss)
         if early_stopping.early_stop:
             print("Early stopping")
             break
+             
 
 if __name__ == "__main__":
-    train_combined_path = "./Dataset/Train/combined"
-    val_combined_path = "./Dataset/Val/combined"
-    train_clean_path = "./Dataset/Train/original"
-    val_clean_path = "./Dataset/Val/original"
-    model_path = "./Reconstructed/reconstructed_model.pth"
+    train_combined_path = "./src/Dataset/Train/combined"
+    val_combined_path = "./src/Dataset/Val/combined"
+    train_clean_path = "./src/Dataset/Train/original"
+    val_clean_path = "./src/Dataset/Val/original"
+    model_path = "./src/Reconstructed/reconstructed_model_UNet_2.pth"
 
     train_dataset = SnoreDataset(train_combined_path, train_clean_path)
     val_dataset = SnoreDataset(val_combined_path, val_clean_path)
@@ -131,6 +133,6 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
-    model_name = 'AdvancedCNNAutoencoder'  
-    model = get_model(model_name)
-    train_model(model, train_loader, val_loader, num_epochs=50, patience=10, model_path=model_path)
+    model_name = 'UNet1D'  
+    model = get_model(model_name).cuda()
+    train_model(model, train_loader, val_loader, num_epochs=100, patience=10, model_path=model_path)
