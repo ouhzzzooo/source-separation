@@ -131,6 +131,6 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
-    model_name = 'AdvancedCNNAutoencoder'  
+    model_name = 'AttentionUNet1D'  # Updated to use the new AttentionUNet1D model
     model = get_model(model_name)
     train_model(model, train_loader, val_loader, num_epochs=50, patience=10, model_path=model_path)

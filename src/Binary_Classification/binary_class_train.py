@@ -82,7 +82,7 @@ def train_model(model, train_loader, val_loader, num_epochs, patience, model_pat
 if __name__ == "__main__":
     dataset_path = "./Dataset"
     model_path = "./classification_model.pth"
-    num_epochs = 50
+    num_epochs = 20
     patience = 10
     
     train_dataset = SnoreNoiseDataset(os.path.join(dataset_path, "Train/original"))

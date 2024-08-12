@@ -121,6 +121,111 @@ class AdvancedCNNAutoencoder(nn.Module):
         decoded = self.decoder(encoded)
         return decoded
 
+# Define Model 3: AttentionUNet1D
+class AttentionUNet1D(nn.Module):
+    def __init__(self, in_channels=1, out_channels=1, init_features=64):
+        super(AttentionUNet1D, self).__init__()
+
+        features = init_features
+        self.encoder1 = self._block(in_channels, features, name="enc1")
+        self.pool1 = nn.MaxPool1d(kernel_size=2, stride=2)
+        self.encoder2 = self._block(features, features * 2, name="enc2")
+        self.pool2 = nn.MaxPool1d(kernel_size=2, stride=2)
+        self.encoder3 = self._block(features * 2, features * 4, name="enc3")
+        self.pool3 = nn.MaxPool1d(kernel_size=2, stride=2)
+        self.encoder4 = self._block(features * 4, features * 8, name="enc4")
+        self.pool4 = nn.MaxPool1d(kernel_size=2, stride=2)
+
+        self.bottleneck = self._block(features * 8, features * 16, name="bottleneck")
+
+        self.upconv4 = nn.ConvTranspose1d(features * 16, features * 8, kernel_size=2, stride=2)
+        self.att4 = self.AttentionBlock(F_g=features * 8, F_l=features * 8, F_int=features * 4)
+        self.decoder4 = self._block((features * 8) * 2, features * 8, name="dec4")
+        self.upconv3 = nn.ConvTranspose1d(features * 8, features * 4, kernel_size=2, stride=2)
+        self.att3 = self.AttentionBlock(F_g=features * 4, F_l=features * 4, F_int=features * 2)
+        self.decoder3 = self._block((features * 4) * 2, features * 4, name="dec3")
+        self.upconv2 = nn.ConvTranspose1d(features * 4, features * 2, kernel_size=2, stride=2)
+        self.att2 = self.AttentionBlock(F_g=features * 2, F_l=features * 2, F_int=features)
+        self.decoder2 = self._block((features * 2) * 2, features * 2, name="dec2")
+        self.upconv1 = nn.ConvTranspose1d(features * 2, features, kernel_size=2, stride=2)
+        self.att1 = self.AttentionBlock(F_g=features, F_l=features, F_int=features // 2)
+        self.decoder1 = self._block(features * 2, features, name="dec1")
+
+        self.conv = nn.Conv1d(in_channels=features, out_channels=out_channels, kernel_size=1)
+
+    def forward(self, x):
+        enc1 = self.encoder1(x)
+        enc2 = self.encoder2(self.pool1(enc1))
+        enc3 = self.encoder3(self.pool2(enc2))
+        enc4 = self.encoder4(self.pool3(enc3))
+
+        bottleneck = self.bottleneck(self.pool4(enc4))
+
+        dec4 = self.upconv4(bottleneck)
+        dec4 = torch.cat((self.att4(g=dec4, x=enc4), dec4), dim=1)
+        dec4 = self.decoder4(dec4)
+        dec3 = self.upconv3(dec4)
+        dec3 = torch.cat((self.att3(g=dec3, x=enc3), dec3), dim=1)
+        dec3 = self.decoder3(dec3)
+        dec2 = self.upconv2(dec3)
+        dec2 = torch.cat((self.att2(g=dec2, x=enc2), dec2), dim=1)
+        dec2 = self.decoder2(dec2)
+        dec1 = self.upconv1(dec2)
+        dec1 = torch.cat((self.att1(g=dec1, x=enc1), dec1), dim=1)
+        dec1 = self.decoder1(dec1)
+        return self.conv(dec1)
+
+    @staticmethod
+    def _block(in_channels, features, name):
+        return nn.Sequential(
+            nn.Conv1d(
+                in_channels=in_channels,
+                out_channels=features,
+                kernel_size=3,
+                padding=1,
+                bias=False,
+            ),
+            nn.BatchNorm1d(num_features=features),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(
+                in_channels=features,
+                out_channels=features,
+                kernel_size=3,
+                padding=1,
+                bias=False,
+            ),
+            nn.BatchNorm1d(num_features=features),
+            nn.ReLU(inplace=True),
+        )
+
+    class AttentionBlock(nn.Module):
+        def __init__(self, F_g, F_l, F_int):
+            super(AttentionUNet1D.AttentionBlock, self).__init__()
+            self.W_g = nn.Sequential(
+                nn.Conv1d(F_g, F_int, kernel_size=1, stride=1, padding=0, bias=True),
+                nn.BatchNorm1d(F_int)
+            )
+
+            self.W_x = nn.Sequential(
+                nn.Conv1d(F_l, F_int, kernel_size=1, stride=1, padding=0, bias=True),
+                nn.BatchNorm1d(F_int)
+            )
+
+            self.psi = nn.Sequential(
+                nn.Conv1d(F_int, 1, kernel_size=1, stride=1, padding=0, bias=True),
+                nn.BatchNorm1d(1),
+                nn.Sigmoid()
+            )
+
+            self.relu = nn.ReLU(inplace=True)
+
+        def forward(self, g, x):
+            g1 = self.W_g(g)
+            x1 = self.W_x(x)
+            psi = self.relu(g1 + x1)
+            psi = self.psi(psi)
+            return x * psi
+
 # Define EarlyStopping
 class EarlyStopping:
     def __init__(self, patience=5, min_delta=0):
@@ -165,10 +270,12 @@ def get_model(model_name):
         return UNet1D()
     elif model_name == 'AdvancedCNNAutoencoder':
         return AdvancedCNNAutoencoder()
+    elif model_name == 'AttentionUNet1D':
+        return AttentionUNet1D()
     else:
         raise ValueError(f"Unknown model name: {model_name}")
 
 if __name__ == "__main__":
-    model_name = 'AdvancedCNNAutoencoder' 
+    model_name = 'AttentionUNet1D'  # Set the model name to the new model
     model = get_model(model_name)
     print(model)

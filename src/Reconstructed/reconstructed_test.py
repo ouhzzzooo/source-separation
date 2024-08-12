@@ -62,7 +62,7 @@ if __name__ == "__main__":
     test_dataset = SnoreDataset(test_data_path)
     test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
-    model_name = 'AdvancedCNNAutoencoder'  # Change this to 'UNet1D' to use the other model
+    model_name = 'AttentionUNet1D'  # Updated to use the new AttentionUNet1D model
     model = get_model(model_name)
     model.load_state_dict(torch.load(model_path))
 

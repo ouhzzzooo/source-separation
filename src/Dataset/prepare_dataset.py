@@ -5,10 +5,7 @@ import torch
 import librosa
 import soundfile as sf
 from tqdm import tqdm
-import sys
-
-from feature_extraction import extract_features
-
+from feature_extraction_sim import extract_features  # Ensure this import matches your environment
 
 def load_wav_16k_mono(filename):
     y, sr = librosa.load(filename, sr=16000, mono=True)
@@ -90,4 +87,4 @@ if __name__ == "__main__":
             np.save(os.path.join(dataset_base, f"{split}_{key}_features.npy"), features[key])
         np.save(os.path.join(dataset_base, f"{split}_labels.npy"), labels)
 
-        print(f"Features and labels for {split} set saved as .npy files.")
+        print(f"Features and labels for {split} set saved as .npy files in {dataset_base}.")
